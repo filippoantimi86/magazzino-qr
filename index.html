@@ -133,7 +133,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       <div class="success-icon">✅</div>
       <div class="success-title" id="okTitle"></div>
       <div class="success-sub" id="okSub"></div>
-      <button class="btn-altro" onclick="showStep('stepArt')">Nuovo movimento</button>
+      <button class="btn-altro" onclick="nuovoMovimento()">Scansiona nuovo articolo</button>
     </div>
   </div>
 
@@ -229,6 +229,19 @@ function selectTipo(tipo) {
   btn.className='btn-confirm '+tipo;
   btn.disabled=false;
   showStep('stepMov');
+}
+
+function nuovoMovimento() {
+  // Ricarica la pagina senza parametri per chiedere nuova scansione
+  window.location.href = window.location.pathname;
+}
+
+function aggiornaQty() {
+  // Rilegge la quantita aggiornata dal backend dopo il movimento
+  callApi({ action:'getArticolo', codice: artData.Codice },
+    function(res){ artData = res.articolo; document.getElementById('dQty').textContent = artData.Quantita; },
+    function(msg){ console.log('Aggiornamento qty: ' + msg); }
+  );
 }
 
 function changeQty(delta) {
