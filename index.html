@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Magazzino - Movimento Rapido</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.logo{text-align:center;font-size:13px;color:#999;margin-bottom:20px;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.step{display:none}.step.active{display:block}
+.loading-box{text-align:center;padding:20px 0}
+.loading-icon{font-size:48px;margin-bottom:12px}
+.loading-text{color:#888;font-size:15px}
+.error-box{text-align:center;padding:20px 0}
+.error-icon{font-size:48px;margin-bottom:12px}
+.error-text{color:#d32f2f;font-size:15px;line-height:1.5}
+.login-title{font-size:17px;font-weight:600;margin-bottom:6px;text-align:center}
+.login-sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:#666;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.field input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:16px;font-family:inherit;background:#fafafa}
+.field input:focus{outline:none;border-color:#1a73e8;background:#fff}
+.err-msg{font-size:13px;color:#d32f2f;margin-bottom:12px;padding:10px;background:#fdecea;border-radius:8px;display:none}
+.btn-login{width:100%;padding:15px;border-radius:12px;border:none;background:#1a73e8;color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.art-header{text-align:center;margin-bottom:24px;padding-bottom:20px;border-bottom:1.5px solid #f0f0f0}
+.art-codice{font-family:monospace;font-size:14px;font-weight:700;color:#1a73e8;background:#e8f0fe;padding:4px 12px;border-radius:20px;display:inline-block;margin-bottom:10px}
+.art-nome{font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:6px}
+.art-disp{font-size:15px;color:#555}
+.art-disp strong{color:#188038;font-size:18px}
+.btn-group{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-mov{padding:24px 12px;border-radius:16px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px}
+.btn-mov:active{opacity:.85}
+.btn-mov .icon{font-size:36px}
+.btn-carico{background:#e8f0fe;color:#1558b0}
+.btn-scarico{background:#fff3e0;color:#e65100}
+.mov-header{text-align:center;margin-bottom:20px}
+.mov-tipo{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 16px;border-radius:20px;display:inline-block;margin-bottom:8px}
+.tipo-carico{background:#e8f0fe;color:#1558b0}
+.tipo-scarico{background:#fff3e0;color:#e65100}
+.mov-nome{font-size:18px;font-weight:600;color:#1a1a1a}
+.qty-label{font-size:12px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.4px;text-align:center;margin-bottom:10px}
+.qty-row{display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:20px}
+.qty-btn{width:52px;height:52px;border-radius:50%;border:2px solid #e0e0e0;background:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#333}
+.qty-btn:active{background:#f5f5f5}
+.qty-input{width:90px;text-align:center;font-size:28px;font-weight:700;padding:10px;border-radius:12px;border:2px solid #e0e0e0;font-family:inherit;color:#1a1a1a}
+.qty-input:focus{outline:none;border-color:#1a73e8}
+.note-field{margin-bottom:16px}
+.note-field label{display:block;font-size:12px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.note-field input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:15px;font-family:inherit;background:#fafafa}
+.btn-confirm{width:100%;padding:16px;border-radius:14px;border:none;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;margin-bottom:12px}
+.btn-confirm:active{opacity:.9}
+.btn-confirm:disabled{background:#ccc!important;cursor:not-allowed}
+.btn-confirm.carico{background:#1a73e8}
+.btn-confirm.scarico{background:#e65100}
+.btn-back{width:100%;padding:12px;border-radius:14px;border:1.5px solid #e0e0e0;background:#fff;font-size:15px;font-weight:500;cursor:pointer;color:#666;font-family:inherit}
+.success-box{text-align:center;padding:10px 0}
+.success-icon{font-size:64px;margin-bottom:16px}
+.success-title{font-size:20px;font-weight:700;color:#188038;margin-bottom:8px}
+.success-sub{font-size:15px;color:#555;margin-bottom:24px;line-height:1.5;white-space:pre-line}
+.btn-altro{width:100%;padding:15px;border-radius:14px;border:none;background:#e8f0fe;color:#1558b0;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.mov-err{margin-top:12px;font-size:13px;color:#d32f2f;padding:10px;background:#fdecea;border-radius:8px;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🏛 Magazzino Protezione Civile</div>
+
+  <div class="step active" id="stepLoad">
+    <div class="loading-box">
+      <div class="loading-icon">⏳</div>
+      <div class="loading-text">Caricamento articolo...</div>
+    </div>
+  </div>
+
+  <div class="step" id="stepErr">
+    <div class="error-box">
+      <div class="error-icon">❌</div>
+      <div class="error-text" id="errMsg"></div>
+    </div>
+  </div>
+
+  <div class="step" id="stepLogin">
+    <div class="login-title">Accesso operatore</div>
+    <div class="login-sub">Inserisci le credenziali del gestionale</div>
+    <div class="err-msg" id="lErr"></div>
+    <div class="field"><label>Nome utente</label><input id="lUser" type="text" autocomplete="username" autocapitalize="none" /></div>
+    <div class="field"><label>Password</label><input id="lPass" type="password" autocomplete="current-password" /></div>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Accedi</button>
+  </div>
+
+  <div class="step" id="stepArt">
+    <div class="art-header">
+      <div class="art-codice" id="dCodice"></div>
+      <div class="art-nome" id="dNome"></div>
+      <div class="art-disp">Disponibile: <strong id="dQty"></strong> <span id="dUM"></span></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn-mov btn-carico" onclick="selectTipo('carico')">
+        <span class="icon">📦⬇️</span>CARICO
+      </button>
+      <button class="btn-mov btn-scarico" onclick="selectTipo('scarico')">
+        <span class="icon">📦⬆️</span>SCARICO
+      </button>
+    </div>
+  </div>
+
+  <div class="step" id="stepMov">
+    <div class="mov-header">
+      <div class="mov-tipo" id="dTipoBadge"></div>
+      <div class="mov-nome" id="dNome2"></div>
+    </div>
+    <div class="qty-label">Quantita</div>
+    <div class="qty-row">
+      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <input class="qty-input" id="movQty" type="number" min="1" value="1" inputmode="numeric" />
+      <button class="qty-btn" onclick="changeQty(1)">+</button>
+    </div>
+    <div class="note-field">
+      <label>Note (opzionale)</label>
+      <input id="movNote" type="text" placeholder="es. destinazione, progetto..." />
+    </div>
+    <button class="btn-confirm" id="btnConf" onclick="confirmMov()">Conferma</button>
+    <button class="btn-back" onclick="showStep('stepArt')">← Torna indietro</button>
+    <div class="mov-err" id="movErr"></div>
+  </div>
+
+  <div class="step" id="stepOk">
+    <div class="success-box">
+      <div class="success-icon">✅</div>
+      <div class="success-title" id="okTitle"></div>
+      <div class="success-sub" id="okSub"></div>
+      <button class="btn-altro" onclick="showStep('stepArt')">Nuovo movimento</button>
+    </div>
+  </div>
+
+</div>
+<script>
+var BACKEND = 'https://script.google.com/macros/s/AKfycbzZfuMUcThDuj_w5kjey5r29z11hcotUQsYajYzDs1VevmpS3cwGawzezFLmbmNcbQy/exec';
+var artData = null;
+var movTipo = '';
+var qrUser  = null;
+
+function getParam(name) {
+  var m = new RegExp('[?&]'+name+'=([^&]*)').exec(window.location.search);
+  return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : null;
+}
+
+function showStep(id) {
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function showErr(msg) {
+  document.getElementById('errMsg').textContent = msg;
+  showStep('stepErr');
+}
+
+function callApi(payload, onOk, onErr) {
+  fetch(BACKEND, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'text/plain' }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if (res && res.ok) onOk(res);
+    else onErr(res ? res.error : 'Errore sconosciuto');
+  })
+  .catch(function(e){ onErr('Errore di rete: ' + e.message); });
+}
+
+// Recupera sessione
+try { var s=sessionStorage.getItem('qrUser'); if(s) qrUser=JSON.parse(s); } catch(e){}
+
+// Carica articolo
+var codice = getParam('art');
+if (!codice) {
+  showErr('Codice articolo mancante.\nScansiona un QR Code valido.');
+} else {
+  callApi({ action:'getArticolo', codice:codice },
+    function(res){ artData=res.articolo; if(qrUser){ showArt(); } else { showStep('stepLogin'); } },
+    function(msg){ showErr(msg); }
+  );
+}
+
+function doLogin() {
+  var nome=document.getElementById('lUser').value.trim();
+  var pass=document.getElementById('lPass').value;
+  var btn=document.getElementById('btnLogin');
+  var err=document.getElementById('lErr');
+  if(!nome||!pass){ err.textContent='Compila tutti i campi'; err.style.display='block'; return; }
+  err.style.display='none';
+  btn.innerHTML='<span class="spinner"></span> Accesso...';
+  btn.disabled=true;
+  callApi({ action:'login', nome:nome, pass:pass },
+    function(res){
+      btn.innerHTML='Accedi'; btn.disabled=false;
+      qrUser=res.user;
+      try{ sessionStorage.setItem('qrUser',JSON.stringify(qrUser)); }catch(e){}
+      showArt();
+    },
+    function(msg){ btn.innerHTML='Accedi'; btn.disabled=false; err.textContent=msg; err.style.display='block'; }
+  );
+}
+
+function showArt() {
+  document.getElementById('dCodice').textContent=artData.Codice;
+  document.getElementById('dNome').textContent=artData.Nome;
+  document.getElementById('dQty').textContent=artData.Quantita;
+  document.getElementById('dUM').textContent=artData.UM;
+  showStep('stepArt');
+}
+
+function selectTipo(tipo) {
+  movTipo=tipo;
+  document.getElementById('dNome2').textContent=artData.Nome;
+  var badge=document.getElementById('dTipoBadge');
+  badge.textContent=tipo==='carico'?'⬇️ CARICO':'⬆️ SCARICO';
+  badge.className='mov-tipo '+(tipo==='carico'?'tipo-carico':'tipo-scarico');
+  document.getElementById('movQty').value=1;
+  document.getElementById('movNote').value='';
+  document.getElementById('movErr').style.display='none';
+  var btn=document.getElementById('btnConf');
+  btn.textContent=tipo==='carico'?'Conferma carico':'Conferma scarico';
+  btn.className='btn-confirm '+tipo;
+  btn.disabled=false;
+  showStep('stepMov');
+}
+
+function changeQty(delta) {
+  var input=document.getElementById('movQty');
+  input.value=Math.max(1,(parseInt(input.value)||1)+delta);
+}
+
+function confirmMov() {
+  var qty=parseInt(document.getElementById('movQty').value)||1;
+  var note=document.getElementById('movNote').value.trim();
+  var btn=document.getElementById('btnConf');
+  var err=document.getElementById('movErr');
+  err.style.display='none';
+  btn.innerHTML='<span class="spinner"></span> Salvataggio...';
+  btn.disabled=true;
+  var oggi=new Date().toISOString().split('T')[0];
+  callApi({
+    action:'saveMov',
+    tipo:movTipo, articolo:artData.Nome, articoloId:artData.ID,
+    quantita:qty, data:oggi, operatore:qrUser.nome, note:note
+  },
+  function(res){
+    btn.disabled=false;
+    btn.textContent=movTipo==='carico'?'Conferma carico':'Conferma scarico';
+    var nuovaQty=movTipo==='carico'?artData.Quantita+qty:Math.max(0,artData.Quantita-qty);
+    artData.Quantita=nuovaQty;
+    document.getElementById('okTitle').textContent=movTipo==='carico'?'Carico registrato!':'Scarico registrato!';
+    document.getElementById('okSub').textContent=qty+' '+artData.UM+' di "'+artData.Nome+'"\nNuova disponibilita: '+nuovaQty+' '+artData.UM;
+    document.getElementById('dQty').textContent=nuovaQty;
+    showStep('stepOk');
+  },
+  function(msg){
+    btn.disabled=false;
+    btn.textContent=movTipo==='carico'?'Conferma carico':'Conferma scarico';
+    err.textContent=msg; err.style.display='block';
+  });
+}
+</script>
+</body>
+</html>
