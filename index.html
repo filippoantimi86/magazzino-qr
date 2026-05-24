@@ -133,7 +133,21 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       <div class="success-icon">✅</div>
       <div class="success-title" id="okTitle"></div>
       <div class="success-sub" id="okSub"></div>
-      <button class="btn-altro" onclick="nuovoMovimento()">Scansiona nuovo articolo</button>
+      <button class="btn-altro" onclick="nuovoMovimento()">
+        📷 Scansiona nuovo articolo
+      </button>
+    </div>
+  </div>
+
+  <div class="step" id="stepScan">
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:48px;margin-bottom:16px">📷</div>
+      <div style="font-size:17px;font-weight:600;margin-bottom:8px">Pronto per la scansione</div>
+      <div style="font-size:14px;color:#888;margin-bottom:24px">Punta la fotocamera al QR Code dell articolo</div>
+      <video id="qrVideo" style="width:100%;border-radius:12px;display:none"></video>
+      <canvas id="qrCanvas2" style="display:none"></canvas>
+      <button class="btn-login" onclick="avviaCamera()">Apri fotocamera</button>
+      <div id="scanErr" style="margin-top:12px;font-size:13px;color:#d32f2f;display:none"></div>
     </div>
   </div>
 
@@ -232,8 +246,82 @@ function selectTipo(tipo) {
 }
 
 function nuovoMovimento() {
-  // Ricarica la pagina senza parametri per chiedere nuova scansione
-  window.location.href = window.location.pathname;
+  artData = null;
+  movTipo = '';
+  // Prova ad aprire la fotocamera
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    showStep('stepScan');
+  } else {
+    // Fallback: ricarica la pagina
+    window.location.href = window.location.pathname;
+  }
+}
+
+function avviaCamera() {
+  var video = document.getElementById('qrVideo');
+  var err   = document.getElementById('scanErr');
+  err.style.display = 'none';
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      video.srcObject = stream;
+      video.style.display = 'block';
+      video.play();
+      scanQR(stream);
+    })
+    .catch(function(e) {
+      err.textContent = 'Fotocamera non disponibile: ' + e.message + '. Scansiona il QR con la fotocamera di sistema.';
+      err.style.display = 'block';
+    });
+}
+
+function scanQR(stream) {
+  var video  = document.getElementById('qrVideo');
+  var canvas = document.getElementById('qrCanvas2');
+  var ctx    = canvas.getContext('2d');
+
+  // Usa BarcodeDetector se disponibile (Android Chrome/Firefox recenti)
+  if ('BarcodeDetector' in window) {
+    var detector = new BarcodeDetector({ formats: ['qr_code'] });
+    var interval = setInterval(function() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        detector.detect(canvas).then(function(codes) {
+          if (codes.length > 0) {
+            clearInterval(interval);
+            stream.getTracks().forEach(function(t){ t.stop(); });
+            video.style.display = 'none';
+            var url = codes[0].rawValue;
+            // Estrai il parametro art dall URL
+            var m = /[?&]art=([^&]*)/.exec(url);
+            if (m) {
+              var codiceScansionato = decodeURIComponent(m[1]);
+              caricaArticolo(codiceScansionato);
+            } else {
+              document.getElementById('scanErr').textContent = 'QR non riconosciuto come articolo del magazzino.';
+              document.getElementById('scanErr').style.display = 'block';
+            }
+          }
+        }).catch(function(){});
+      }
+    }, 500);
+  } else {
+    // BarcodeDetector non disponibile - mostra messaggio
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    video.style.display = 'none';
+    var err = document.getElementById('scanErr');
+    err.textContent = 'Scansione automatica non supportata su questo browser. Usa la fotocamera di sistema per scansionare il QR.';
+    err.style.display = 'block';
+  }
+}
+
+function caricaArticolo(codice) {
+  showStep('stepLoad');
+  callApi({ action:'getArticolo', codice: codice },
+    function(res){ artData = res.articolo; showArt(); },
+    function(msg){ showErr(msg); }
+  );
 }
 
 function aggiornaQty() {
