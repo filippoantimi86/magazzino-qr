@@ -133,7 +133,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       <div class="success-icon">✅</div>
       <div class="success-title" id="okTitle"></div>
       <div class="success-sub" id="okSub"></div>
-      <button class="btn-altro" onclick="nuovoMovimento()">
+      <button class="btn-altro" onclick="avviaNuovaScansione()">
         📷 Scansiona nuovo articolo
       </button>
     </div>
@@ -248,11 +248,17 @@ function selectTipo(tipo) {
 function nuovoMovimento() {
   artData = null;
   movTipo = '';
-  // Prova ad aprire la fotocamera
+  avviaNuovaScansione();
+}
+
+function avviaNuovaScansione() {
+  artData = null;
+  movTipo = '';
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     showStep('stepScan');
+    // Avvia subito la fotocamera senza aspettare che l utente clicchi
+    setTimeout(function(){ avviaCamera(); }, 300);
   } else {
-    // Fallback: ricarica la pagina
     window.location.href = window.location.pathname;
   }
 }
