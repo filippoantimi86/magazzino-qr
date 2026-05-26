@@ -58,8 +58,10 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
 .success-box{text-align:center;padding:10px 0}
 .success-icon{font-size:64px;margin-bottom:16px}
 .success-title{font-size:20px;font-weight:700;color:#188038;margin-bottom:8px}
-.success-sub{font-size:15px;color:#555;margin-bottom:24px;line-height:1.5;white-space:pre-line}
-.btn-altro{width:100%;padding:15px;border-radius:14px;border:none;background:#e8f0fe;color:#1558b0;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.success-sub{font-size:15px;color:#555;margin-bottom:20px;line-height:1.5;white-space:pre-line}
+.close-box{background:#f0f4f8;border-radius:12px;padding:14px;font-size:14px;color:#555;line-height:1.6;margin-bottom:20px;text-align:left}
+.btn-si{width:100%;padding:15px;border-radius:14px;border:none;background:#1a73e8;color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px}
+.btn-no{width:100%;padding:15px;border-radius:14px;border:1.5px solid #e0e0e0;background:#fff;font-size:16px;font-weight:500;cursor:pointer;font-family:inherit;color:#666}
 .mov-err{margin-top:12px;font-size:13px;color:#d32f2f;padding:10px;background:#fdecea;border-radius:8px;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
@@ -67,18 +69,18 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
 </head>
 <body>
 <div class="card">
-  <div class="logo">🏛 Magazzino Protezione Civile</div>
+  <div class="logo">Magazzino Protezione Civile</div>
 
   <div class="step active" id="stepLoad">
     <div class="loading-box">
-      <div class="loading-icon">⏳</div>
+      <div class="loading-icon"></div>
       <div class="loading-text">Caricamento articolo...</div>
     </div>
   </div>
 
   <div class="step" id="stepErr">
     <div class="error-box">
-      <div class="error-icon">❌</div>
+      <div class="error-icon"></div>
       <div class="error-text" id="errMsg"></div>
     </div>
   </div>
@@ -89,7 +91,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
     <div class="err-msg" id="lErr"></div>
     <div class="field"><label>Nome utente</label><input id="lUser" type="text" autocomplete="username" autocapitalize="none" /></div>
     <div class="field"><label>Password</label><input id="lPass" type="password" autocomplete="current-password" /></div>
-    <button class="btn-login" id="btnLogin" onclick="doLogin()">Accedi</button>
+    <button class="btn-login" id="btnLogin">Accedi</button>
   </div>
 
   <div class="step" id="stepArt">
@@ -99,11 +101,11 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       <div class="art-disp">Disponibile: <strong id="dQty"></strong> <span id="dUM"></span></div>
     </div>
     <div class="btn-group">
-      <button class="btn-mov btn-carico" onclick="selectTipo('carico')">
-        <span class="icon">📦⬇️</span>CARICO
+      <button class="btn-mov btn-carico" id="btnCarico">
+        <span class="icon"></span>CARICO
       </button>
-      <button class="btn-mov btn-scarico" onclick="selectTipo('scarico')">
-        <span class="icon">📦⬆️</span>SCARICO
+      <button class="btn-mov btn-scarico" id="btnScarico">
+        <span class="icon"></span>SCARICO
       </button>
     </div>
   </div>
@@ -115,43 +117,40 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
     </div>
     <div class="qty-label">Quantita</div>
     <div class="qty-row">
-      <button class="qty-btn" onclick="changeQty(-1)">−</button>
+      <button class="qty-btn" id="btnMeno">-</button>
       <input class="qty-input" id="movQty" type="number" min="1" value="1" inputmode="numeric" />
-      <button class="qty-btn" onclick="changeQty(1)">+</button>
+      <button class="qty-btn" id="btnPiu">+</button>
     </div>
     <div class="note-field">
       <label>Note (opzionale)</label>
       <input id="movNote" type="text" placeholder="es. destinazione, progetto..." />
     </div>
-    <button class="btn-confirm" id="btnConf" onclick="confirmMov()">Conferma</button>
-    <button class="btn-back" onclick="showStep('stepArt')">← Torna indietro</button>
+    <button class="btn-confirm" id="btnConf">Conferma</button>
+    <button class="btn-back" id="btnBack"> Torna indietro</button>
     <div class="mov-err" id="movErr"></div>
   </div>
 
   <div class="step" id="stepOk">
     <div class="success-box">
-      <div class="success-icon">✅</div>
+      <div class="success-icon"></div>
       <div class="success-title" id="okTitle"></div>
       <div class="success-sub" id="okSub"></div>
-      <div style="margin:20px 0;padding:14px;background:#f0f4f8;border-radius:12px;font-size:14px;color:#555;line-height:1.6">
-        <strong>Puoi chiudere questa pagina.</strong><br>
-        Per registrare un altro movimento scansiona il prossimo QR Code con la fotocamera.
+      <div class="close-box">
+        <strong>Vuoi registrare un altro movimento?</strong>
       </div>
-      <button class="btn-altro" onclick="avviaNuovaScansione()">
-        Oppure scansiona subito un altro articolo
-      </button>
+      <button class="btn-si" id="btnSiAltro"> Si, scansiona nuovo articolo</button>
+      <button class="btn-no" id="btnNoChiudi">No, ho finito</button>
     </div>
   </div>
 
-  <div class="step" id="stepScan">
-    <div style="text-align:center;padding:10px 0">
-      <div style="font-size:48px;margin-bottom:16px">📷</div>
-      <div style="font-size:17px;font-weight:600;margin-bottom:8px">Pronto per la scansione</div>
-      <div style="font-size:14px;color:#888;margin-bottom:24px">Punta la fotocamera al QR Code dell articolo</div>
-      <video id="qrVideo" style="width:100%;border-radius:12px;display:none"></video>
-      <canvas id="qrCanvas2" style="display:none"></canvas>
-      <button class="btn-login" onclick="avviaCamera()">Apri fotocamera</button>
-      <div id="scanErr" style="margin-top:12px;font-size:13px;color:#d32f2f;display:none"></div>
+  <div class="step" id="stepChiudi">
+    <div class="success-box">
+      <div class="success-icon"></div>
+      <div class="success-title">Operazione completata</div>
+      <div class="success-sub" style="margin-bottom:20px">Puoi chiudere questa pagina.</div>
+      <div class="close-box">
+        Per registrare nuovi movimenti scansiona il QR Code del prossimo articolo con la fotocamera del telefono.
+      </div>
     </div>
   </div>
 
@@ -161,6 +160,7 @@ var BACKEND = 'https://script.google.com/macros/s/AKfycbzZfuMUcThDuj_w5kjey5r29z
 var artData = null;
 var movTipo = '';
 var qrUser  = null;
+var codiceCorrente = '';
 
 function getParam(name) {
   var m = new RegExp('[?&]'+name+'=([^&]*)').exec(window.location.search);
@@ -195,22 +195,35 @@ function callApi(payload, onOk, onErr) {
 try { var s=sessionStorage.getItem('qrUser'); if(s) qrUser=JSON.parse(s); } catch(e){}
 
 // Carica articolo
-var codice = getParam('art');
-if (!codice) {
-  showErr('Codice articolo mancante.\nScansiona un QR Code valido.');
+codiceCorrente = getParam('art');
+if (!codiceCorrente) {
+  showErr('Codice articolo mancante. Scansiona un QR Code valido.');
 } else {
+  caricaArticolo(codiceCorrente);
+}
+
+function caricaArticolo(codice) {
+  showStep('stepLoad');
   callApi({ action:'getArticolo', codice:codice },
-    function(res){ artData=res.articolo; if(qrUser){ showArt(); } else { showStep('stepLogin'); } },
+    function(res){
+      artData = res.articolo;
+      if (qrUser) showArt();
+      else showStep('stepLogin');
+    },
     function(msg){ showErr(msg); }
   );
 }
 
+// Login
+document.getElementById('btnLogin').addEventListener('click', doLogin);
+document.getElementById('lPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+
 function doLogin() {
-  var nome=document.getElementById('lUser').value.trim();
-  var pass=document.getElementById('lPass').value;
-  var btn=document.getElementById('btnLogin');
-  var err=document.getElementById('lErr');
-  if(!nome||!pass){ err.textContent='Compila tutti i campi'; err.style.display='block'; return; }
+  var nome = document.getElementById('lUser').value.trim();
+  var pass = document.getElementById('lPass').value;
+  var btn  = document.getElementById('btnLogin');
+  var err  = document.getElementById('lErr');
+  if (!nome||!pass){ err.textContent='Compila tutti i campi'; err.style.display='block'; return; }
   err.style.display='none';
   btn.innerHTML='<span class="spinner"></span> Accesso...';
   btn.disabled=true;
@@ -226,157 +239,101 @@ function doLogin() {
 }
 
 function showArt() {
-  document.getElementById('dCodice').textContent=artData.Codice;
-  document.getElementById('dNome').textContent=artData.Nome;
-  document.getElementById('dQty').textContent=artData.Quantita;
-  document.getElementById('dUM').textContent=artData.UM;
+  document.getElementById('dCodice').textContent = artData.Codice;
+  document.getElementById('dNome').textContent   = artData.Nome;
+  document.getElementById('dQty').textContent    = artData.Quantita;
+  document.getElementById('dUM').textContent     = artData.UM;
   showStep('stepArt');
 }
 
+// Selezione tipo
+document.getElementById('btnCarico').addEventListener('click', function(){ selectTipo('carico'); });
+document.getElementById('btnScarico').addEventListener('click', function(){ selectTipo('scarico'); });
+
 function selectTipo(tipo) {
-  movTipo=tipo;
-  document.getElementById('dNome2').textContent=artData.Nome;
-  var badge=document.getElementById('dTipoBadge');
-  badge.textContent=tipo==='carico'?'⬇️ CARICO':'⬆️ SCARICO';
-  badge.className='mov-tipo '+(tipo==='carico'?'tipo-carico':'tipo-scarico');
-  document.getElementById('movQty').value=1;
-  document.getElementById('movNote').value='';
-  document.getElementById('movErr').style.display='none';
-  var btn=document.getElementById('btnConf');
-  btn.textContent=tipo==='carico'?'Conferma carico':'Conferma scarico';
-  btn.className='btn-confirm '+tipo;
-  btn.disabled=false;
+  movTipo = tipo;
+  document.getElementById('dNome2').textContent = artData.Nome;
+  var badge = document.getElementById('dTipoBadge');
+  badge.textContent = tipo==='carico' ? 'CARICO' : 'SCARICO';
+  badge.className = 'mov-tipo '+(tipo==='carico'?'tipo-carico':'tipo-scarico');
+  document.getElementById('movQty').value = 1;
+  document.getElementById('movNote').value = '';
+  document.getElementById('movErr').style.display = 'none';
+  var btn = document.getElementById('btnConf');
+  btn.textContent = tipo==='carico' ? 'Conferma carico' : 'Conferma scarico';
+  btn.className = 'btn-confirm '+tipo;
+  btn.disabled = false;
   showStep('stepMov');
 }
 
-function nuovoMovimento() {
-  artData = null;
-  movTipo = '';
-  avviaNuovaScansione();
-}
+// Quantita
+document.getElementById('btnMeno').addEventListener('click', function(){
+  var input = document.getElementById('movQty');
+  input.value = Math.max(1, (parseInt(input.value)||1) - 1);
+});
+document.getElementById('btnPiu').addEventListener('click', function(){
+  var input = document.getElementById('movQty');
+  input.value = (parseInt(input.value)||1) + 1;
+});
+document.getElementById('btnBack').addEventListener('click', function(){ showStep('stepArt'); });
 
-function avviaNuovaScansione() {
-  artData = null;
-  movTipo = '';
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    showStep('stepScan');
-    // Avvia subito la fotocamera senza aspettare che l utente clicchi
-    setTimeout(function(){ avviaCamera(); }, 300);
-  } else {
-    window.location.href = window.location.pathname;
-  }
-}
-
-function avviaCamera() {
-  var video = document.getElementById('qrVideo');
-  var err   = document.getElementById('scanErr');
-  err.style.display = 'none';
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    .then(function(stream) {
-      video.srcObject = stream;
-      video.style.display = 'block';
-      video.play();
-      scanQR(stream);
-    })
-    .catch(function(e) {
-      err.textContent = 'Fotocamera non disponibile: ' + e.message + '. Scansiona il QR con la fotocamera di sistema.';
-      err.style.display = 'block';
-    });
-}
-
-function scanQR(stream) {
-  var video  = document.getElementById('qrVideo');
-  var canvas = document.getElementById('qrCanvas2');
-  var ctx    = canvas.getContext('2d');
-
-  // Usa BarcodeDetector se disponibile (Android Chrome/Firefox recenti)
-  if ('BarcodeDetector' in window) {
-    var detector = new BarcodeDetector({ formats: ['qr_code'] });
-    var interval = setInterval(function() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        detector.detect(canvas).then(function(codes) {
-          if (codes.length > 0) {
-            clearInterval(interval);
-            stream.getTracks().forEach(function(t){ t.stop(); });
-            video.style.display = 'none';
-            var url = codes[0].rawValue;
-            // Estrai il parametro art dall URL
-            var m = /[?&]art=([^&]*)/.exec(url);
-            if (m) {
-              var codiceScansionato = decodeURIComponent(m[1]);
-              caricaArticolo(codiceScansionato);
-            } else {
-              document.getElementById('scanErr').textContent = 'QR non riconosciuto come articolo del magazzino.';
-              document.getElementById('scanErr').style.display = 'block';
-            }
-          }
-        }).catch(function(){});
-      }
-    }, 500);
-  } else {
-    // BarcodeDetector non disponibile - mostra messaggio
-    stream.getTracks().forEach(function(t){ t.stop(); });
-    video.style.display = 'none';
-    var err = document.getElementById('scanErr');
-    err.textContent = 'Scansione automatica non supportata su questo browser. Usa la fotocamera di sistema per scansionare il QR.';
-    err.style.display = 'block';
-  }
-}
-
-function caricaArticolo(codice) {
-  showStep('stepLoad');
-  callApi({ action:'getArticolo', codice: codice },
-    function(res){ artData = res.articolo; showArt(); },
-    function(msg){ showErr(msg); }
-  );
-}
-
-function aggiornaQty() {
-  // Rilegge la quantita aggiornata dal backend dopo il movimento
-  callApi({ action:'getArticolo', codice: artData.Codice },
-    function(res){ artData = res.articolo; document.getElementById('dQty').textContent = artData.Quantita; },
-    function(msg){ console.log('Aggiornamento qty: ' + msg); }
-  );
-}
-
-function changeQty(delta) {
-  var input=document.getElementById('movQty');
-  input.value=Math.max(1,(parseInt(input.value)||1)+delta);
-}
+// Conferma movimento
+document.getElementById('btnConf').addEventListener('click', confirmMov);
 
 function confirmMov() {
-  var qty=parseInt(document.getElementById('movQty').value)||1;
-  var note=document.getElementById('movNote').value.trim();
-  var btn=document.getElementById('btnConf');
-  var err=document.getElementById('movErr');
+  var qty  = parseInt(document.getElementById('movQty').value)||1;
+  var note = document.getElementById('movNote').value.trim();
+  var btn  = document.getElementById('btnConf');
+  var err  = document.getElementById('movErr');
   err.style.display='none';
   btn.innerHTML='<span class="spinner"></span> Salvataggio...';
   btn.disabled=true;
-  var oggi=new Date().toISOString().split('T')[0];
+  var oggi = new Date().toISOString().split('T')[0];
   callApi({
-    action:'saveMov',
-    tipo:movTipo, articolo:artData.Nome, articoloId:artData.ID,
-    quantita:qty, data:oggi, operatore:qrUser.nome, note:note
+    action:'saveMov', tipo:movTipo, articolo:artData.Nome,
+    articoloId:artData.ID, quantita:qty, data:oggi, operatore:qrUser.nome, note:note
   },
   function(res){
     btn.disabled=false;
-    btn.textContent=movTipo==='carico'?'Conferma carico':'Conferma scarico';
-    var nuovaQty=movTipo==='carico'?artData.Quantita+qty:Math.max(0,artData.Quantita-qty);
-    artData.Quantita=nuovaQty;
-    document.getElementById('okTitle').textContent=movTipo==='carico'?'Carico registrato!':'Scarico registrato!';
-    document.getElementById('okSub').textContent=qty+' '+artData.UM+' di "'+artData.Nome+'"\nNuova disponibilita: '+nuovaQty+' '+artData.UM;
-    document.getElementById('dQty').textContent=nuovaQty;
+    btn.textContent = movTipo==='carico'?'Conferma carico':'Conferma scarico';
+    var nuovaQty = movTipo==='carico' ? artData.Quantita+qty : Math.max(0, artData.Quantita-qty);
+    artData.Quantita = nuovaQty;
+    document.getElementById('okTitle').textContent = movTipo==='carico'?'Carico registrato!':'Scarico registrato!';
+    document.getElementById('okSub').textContent = qty+' '+artData.UM+' di "'+artData.Nome+'"\nNuova disponibilita: '+nuovaQty+' '+artData.UM;
+    document.getElementById('dQty').textContent = nuovaQty;
     showStep('stepOk');
   },
   function(msg){
     btn.disabled=false;
-    btn.textContent=movTipo==='carico'?'Conferma carico':'Conferma scarico';
+    btn.textContent = movTipo==='carico'?'Conferma carico':'Conferma scarico';
     err.textContent=msg; err.style.display='block';
   });
 }
+
+// Dopo il movimento: Si o No
+document.getElementById('btnSiAltro').addEventListener('click', function(){
+  // Resetta e riapre la fotocamera o mostra stepLoad pronto per nuova scansione
+  artData = null;
+  movTipo = '';
+  // Mostra istruzioni per nuova scansione
+  showStep('stepNuovo');
+});
+
+document.getElementById('btnNoChiudi').addEventListener('click', function(){
+  showStep('stepChiudi');
+});
+
+// Aggiunge stepNuovo dinamicamente
+var nuovoDiv = document.createElement('div');
+nuovoDiv.className = 'step';
+nuovoDiv.id = 'stepNuovo';
+nuovoDiv.innerHTML = '<div class="success-box">' +
+  '<div class="success-icon"></div>' +
+  '<div class="success-title" style="color:#1a73e8">Pronto per la prossima scansione</div>' +
+  '<div class="success-sub" style="margin-bottom:20px">Punta la fotocamera al QR Code del prossimo articolo.</div>' +
+  '<div class="close-box" style="text-align:center;font-size:16px;">La sessione e attiva.<br>Nessun nuovo login necessario.</div>' +
+  '</div>';
+document.querySelector('.card').appendChild(nuovoDiv);
 </script>
 </body>
 </html>
