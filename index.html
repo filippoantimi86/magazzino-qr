@@ -186,8 +186,20 @@ function callApi(payload, onOk, onErr) {
   .catch(function(e){ onErr('Errore di rete: ' + e.message); });
 }
 
-// Recupera sessione
-try { var s=sessionStorage.getItem('qrUser'); if(s) qrUser=JSON.parse(s); } catch(e){}
+// Recupera sessione con scadenza 15 minuti
+try {
+  var s = localStorage.getItem('qrUser');
+  var t = localStorage.getItem('qrUserTime');
+  if (s && t) {
+    var elapsed = Date.now() - parseInt(t);
+    if (elapsed < 15 * 60 * 1000) {
+      qrUser = JSON.parse(s);
+    } else {
+      localStorage.removeItem('qrUser');
+      localStorage.removeItem('qrUserTime');
+    }
+  }
+} catch(e){}
 
 // Carica articolo - legge parametro ?art=
 var codice = getParam('art');
@@ -221,7 +233,10 @@ function doLogin() {
     function(res){
       btn.innerHTML='Accedi'; btn.disabled=false;
       qrUser = res.user;
-      try{ sessionStorage.setItem('qrUser',JSON.stringify(qrUser)); }catch(e){}
+      try{
+      localStorage.setItem('qrUser', JSON.stringify(qrUser));
+      localStorage.setItem('qrUserTime', Date.now().toString());
+    }catch(e){}
       showArt();
     },
     function(msg){ btn.innerHTML='Accedi'; btn.disabled=false; err.textContent=msg; err.style.display='block'; }
