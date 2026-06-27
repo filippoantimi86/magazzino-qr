@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Scanner QR</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f7fb;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.12);
+      padding: 18px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 10px;
+      text-align: center;
+    }
+    p {
+      text-align: center;
+      color: #666;
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+    .box {
+      border: 2px dashed #d7dde7;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fafbfd;
+      min-height: 280px;
+      margin-bottom: 14px;
+    }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .primary { background: #1a73e8; color: #fff; }
+    .gray { background: #e8eaed; color: #222; }
+    .ok {
+      background: #e6f4ea;
+      color: #137333;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin: 12px 0;
+      display: none;
+      white-space: pre-line;
+    }
+    .err {
+      background: #fdecea;
+      color: #b3261e;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin: 12px 0;
+      display: none;
+      white-space: pre-line;
+    }
+    .small {
+      font-size: 12px;
+      color: #777;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Scanner QR</h1>
+    <p>Premi il pulsante, consenti la fotocamera e inquadra il QR.</p>
+
+    <div id="msgOk" class="ok"></div>
+    <div id="msgErr" class="err"></div>
+
+    <div class="box">
+      <div id="reader"></div>
+    </div>
+
+    <button id="btnStart" class="btn primary">Avvia scanner</button>
+
+    <div class="actions">
+      <button id="btnStop" class="btn gray" disabled>Ferma scanner</button>
+      <button id="btnReset" class="btn gray">Reset</button>
+    </div>
+
+    <div class="small">Dopo la lettura il codice viene inviato al gestionale.</div>
+  </div>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZfuMUcThDuj_w5kjey5r29z11hcotUQsYajYzDs1VevmpS3cwGawzezFLmbmNcbQy/exec";
+const APPS_SCRIPT_ACTION = "getArticolo";
+let scanner = null;
+let started = false;
+let lastCode = "";
+
+function showOk(text) {
+  const el = document.getElementById("msgOk");
+  el.textContent = text;
+  el.style.display = "block";
+  document.getElementById("msgErr").style.display = "none";
+}
+
+function showErr(text) {
+  const el = document.getElementById("msgErr");
+  el.textContent = text;
+  el.style.display = "block";
+  document.getElementById("msgOk").style.display = "none";
+}
+
+function clearMsg() {
+  document.getElementById("msgOk").style.display = "none";
+  document.getElementById("msgErr").style.display = "none";
+}
+
+async function startScanner() {
+  clearMsg();
+
+  if (!scanner) {
+    scanner = new Html5Qrcode("reader");
+  }
+
+  if (started) return;
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      async (decodedText) => {
+        if (!decodedText || decodedText === lastCode) return;
+        lastCode = decodedText;
+        showOk("QR letto:\n" + decodedText);
+
+        try {
+          await scanner.stop();
+          started = false;
+          document.getElementById("btnStop").disabled = true;
+        } catch (e) {}
+
+        sendCodeToAppsScript(decodedText);
+      },
+      (errorMessage) => {}
+    );
+
+    started = true;
+    document.getElementById("btnStop").disabled = false;
+  } catch (e) {
+    showErr("Impossibile avviare la fotocamera:\n" + e);
+  }
+}
+
+async function stopScanner() {
+  if (!scanner || !started) return;
+  try {
+    await scanner.stop();
+  } catch (e) {}
+  started = false;
+  document.getElementById("btnStop").disabled = true;
+}
+
+function resetScanner() {
+  lastCode = "";
+  clearMsg();
+  stopScanner();
+}
+
+async function sendCodeToAppsScript(code) {
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("INCOLLA_QUI")) {
+    showErr("Inserisci l'URL della web app Apps Script nel file scanner.html.");
+    return;
+  }
+
+  const url = APPS_SCRIPT_URL + "?action=getArticolo&codice=" + encodeURIComponent(code);
+
+  try {
+    const res = await fetch(url, { method: "GET" });
+    const data = await res.json();
+
+    if (!data || !data.ok) {
+      showErr("QR inviato, ma articolo non trovato:\n" + (data && data.error ? data.error : "Errore sconosciuto"));
+      return;
+    }
+
+    showOk(
+      "Articolo trovato:\n" +
+      (data.articolo.Nome || "") +
+      "\nCodice: " + (data.articolo.Codice || "")
+    );
+  } catch (e) {
+    showErr("Errore invio QR al gestionale:\n" + e);
+  }
+}
+
+document.getElementById("btnStart").addEventListener("click", startScanner);
+document.getElementById("btnStop").addEventListener("click", stopScanner);
+document.getElementById("btnReset").addEventListener("click", resetScanner);
+</script>
+</body>
+</html>
