@@ -185,57 +185,41 @@ codice = getParam('art');
 if (!codice) {
   showErr('Codice articolo mancante.\nScansiona un QR Code valido.');
 } else {
-  // Usa google.script.run se disponibile, altrimenti fetch POST
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!res || !res.ok) { showErr(res ? res.error : 'Articolo non trovato'); return; }
-        artData = res.articolo;
-        if (qrUser) { showArt(); } else { showStep('stepLogin'); }
-      })
-      .withFailureHandler(function(e){ showErr('Errore: ' + e.message); })
-      .getArticoloByCodice(codice);
-  } else {
-    fetch(BACKEND_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'getArticolo', codice: codice})
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(res){
+  // Chiama via GET per evitare problemi CORS
+  var urlArt = BACKEND_URL + '?action=getArticolo&codice=' + encodeURIComponent(codice);
+  fetch(urlArt)
+  .then(function(r){ return r.text(); })
+  .then(function(text){
+    try {
+      var res = JSON.parse(text);
       if (!res || !res.ok) { showErr(res ? res.error : 'Articolo non trovato'); return; }
       artData = res.articolo;
       if (qrUser) { showArt(); } else { showStep('stepLogin'); }
-    })
-    .catch(function(e){ showErr('Errore di rete: ' + e.message); });
-  }
+    } catch(e) {
+      showErr('Risposta non valida dal server');
+    }
+  })
+  .catch(function(e){ showErr('Errore di rete: ' + e.message); });
 }
 
 function callBackend(action, params, onOk, onErr) {
-  var data = Object.assign({ action: action }, params);
-  if (typeof google !== 'undefined' && google.script && google.script.run) {
-    var runner = google.script.run
-      .withSuccessHandler(function(res){
-        if (res && res.ok) onOk(res);
-        else onErr((res && res.error) ? res.error : 'Errore sconosciuto');
-      })
-      .withFailureHandler(function(e){ onErr(e.message); });
-    // Chiama la funzione giusta in base all'action
-    if (action === 'login')      runner.login(params.nome, params.pass);
-    else if (action === 'saveMov') runner.saveMov(params.tipo, params.articolo, params.articoloId, params.quantita, params.data, params.operatore, params.note);
-  } else {
-    fetch(BACKEND_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(res){
+  // Usa sempre GET verso Apps Script per evitare problemi CORS
+  var url = BACKEND_URL + '?action=' + encodeURIComponent(action);
+  Object.keys(params).forEach(function(k){
+    url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k] !== undefined ? params[k] : '');
+  });
+  fetch(url)
+  .then(function(r){ return r.text(); })
+  .then(function(text){
+    try {
+      var res = JSON.parse(text);
       if (res && res.ok) onOk(res);
-      else onErr((res && res.error) ? res.error : 'Errore');
-    })
-    .catch(function(e){ onErr('Errore di rete: ' + e.message); });
-  }
+      else onErr((res && res.error) ? res.error : 'Errore sconosciuto');
+    } catch(e) {
+      onErr('Risposta non valida dal server');
+    }
+  })
+  .catch(function(e){ onErr('Errore di rete: ' + e.message); });
 }
 
 function doLogin() {
