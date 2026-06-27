@@ -254,7 +254,7 @@ function selectTipo(tipo) {
   movTipo = tipo;
   document.getElementById('dNome2').textContent = artData.Nome;
   var badge = document.getElementById('dTipoBadge');
-  badge.textContent = tipo==='carico' ? 'CARICO' : 'SCARICO';
+  badge.textContent = tipo==='carico' ? 'INGRESSO' : 'USCITA';
   badge.className = 'mov-tipo '+(tipo==='carico'?'tipo-carico':'tipo-scarico');
   document.getElementById('movQty').value = 1;
   document.getElementById('movNote').value = '';
@@ -262,6 +262,7 @@ function selectTipo(tipo) {
   var btn = document.getElementById('btnConf');
   btn.textContent = tipo==='carico' ? 'Conferma carico' : 'Conferma scarico';
   btn.className = 'btn-confirm '+tipo;
+  btn.textContent = tipo==='carico'?'Conferma ingresso':'Conferma uscita';
   btn.disabled = false;
   showStep('stepMov');
 }
@@ -298,7 +299,7 @@ function confirmMov() {
     btn.textContent = movTipo==='carico'?'Conferma carico':'Conferma scarico';
     var nuovaQty = movTipo==='carico' ? artData.Quantita+qty : Math.max(0, artData.Quantita-qty);
     artData.Quantita = nuovaQty;
-    document.getElementById('okTitle').textContent = movTipo==='carico'?'Carico registrato!':'Scarico registrato!';
+    document.getElementById('okTitle').textContent = movTipo==='carico'?'Ingresso registrato!':'Uscita registrata!';
     document.getElementById('okSub').textContent = qty+' '+artData.UM+' di "'+artData.Nome+'"\nNuova disponibilita: '+nuovaQty+' '+artData.UM;
     document.getElementById('dQty').textContent = nuovaQty;
     showStep('stepOk');
@@ -311,7 +312,8 @@ function confirmMov() {
 }
 
 // Dopo il movimento: Si o No
-document.getElementById('btnSiAltro').addEventListener('click', function(){
+// btnSiAltro rimosso
+if(false){
   // Resetta e riapre la fotocamera o mostra stepLoad pronto per nuova scansione
   artData = null;
   movTipo = '';
@@ -319,7 +321,8 @@ document.getElementById('btnSiAltro').addEventListener('click', function(){
   showStep('stepNuovo');
 });
 
-document.getElementById('btnNoChiudi').addEventListener('click', function(){
+// btnNoChiudi rimosso
+if(false){
   showStep('stepChiudi');
 });
 
