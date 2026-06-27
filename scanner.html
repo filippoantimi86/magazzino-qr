@@ -35,6 +35,7 @@
       color: #666;
       margin: 0 0 14px;
       font-size: 14px;
+      line-height: 1.4;
     }
     .box {
       border: 2px dashed #d7dde7;
@@ -56,24 +57,16 @@
     }
     .primary { background: #1a73e8; color: #fff; }
     .gray { background: #e8eaed; color: #222; }
-    .ok {
-      background: #e6f4ea;
-      color: #137333;
+    .ok, .err {
       padding: 10px 12px;
       border-radius: 10px;
       margin: 12px 0;
       display: none;
       white-space: pre-line;
+      font-size: 14px;
     }
-    .err {
-      background: #fdecea;
-      color: #b3261e;
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin: 12px 0;
-      display: none;
-      white-space: pre-line;
-    }
+    .ok { background: #e6f4ea; color: #137333; }
+    .err { background: #fdecea; color: #b3261e; }
     .small {
       font-size: 12px;
       color: #777;
@@ -113,6 +106,7 @@
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZfuMUcThDuj_w5kjey5r29z11hcotUQsYajYzDs1VevmpS3cwGawzezFLmbmNcbQy/exec";
 const APPS_SCRIPT_ACTION = "getArticolo";
+
 let scanner = null;
 let started = false;
 let lastCode = "";
@@ -139,10 +133,7 @@ function clearMsg() {
 async function startScanner() {
   clearMsg();
 
-  if (!scanner) {
-    scanner = new Html5Qrcode("reader");
-  }
-
+  if (!scanner) scanner = new Html5Qrcode("reader");
   if (started) return;
 
   try {
@@ -152,17 +143,16 @@ async function startScanner() {
       async (decodedText) => {
         if (!decodedText || decodedText === lastCode) return;
         lastCode = decodedText;
+
         showOk("QR letto:\n" + decodedText);
 
-        try {
-          await scanner.stop();
-          started = false;
-          document.getElementById("btnStop").disabled = true;
-        } catch (e) {}
+        try { await scanner.stop(); } catch (e) {}
+        started = false;
+        document.getElementById("btnStop").disabled = true;
 
         sendCodeToAppsScript(decodedText);
       },
-      (errorMessage) => {}
+      () => {}
     );
 
     started = true;
@@ -174,9 +164,7 @@ async function startScanner() {
 
 async function stopScanner() {
   if (!scanner || !started) return;
-  try {
-    await scanner.stop();
-  } catch (e) {}
+  try { await scanner.stop(); } catch (e) {}
   started = false;
   document.getElementById("btnStop").disabled = true;
 }
@@ -188,12 +176,7 @@ function resetScanner() {
 }
 
 async function sendCodeToAppsScript(code) {
-  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("INCOLLA_QUI")) {
-    showErr("Inserisci l'URL della web app Apps Script nel file scanner.html.");
-    return;
-  }
-
-  const url = APPS_SCRIPT_URL + "?action=getArticolo&codice=" + encodeURIComponent(code);
+  const url = APPS_SCRIPT_URL + "?action=" + APPS_SCRIPT_ACTION + "&codice=" + encodeURIComponent(code);
 
   try {
     const res = await fetch(url, { method: "GET" });
