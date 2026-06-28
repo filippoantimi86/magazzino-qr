@@ -251,10 +251,23 @@ try {
 } catch(e){}
 
 // Carica articolo - legge parametro ?art=
-var codice = getParam('art');
-if (!codice) {
-  showErr('Codice articolo mancante. Scansiona un QR Code valido.');
-} else {
+// Determina cosa caricare: articolo singolo o cassa
+var codice      = getParam('art');
+var codiceCassa = getParam('cassa');
+
+if (codiceCassa) {
+  // E una cassa
+  callApi({ action:'getCassa', codice:codiceCassa },
+    function(res){
+      cassaData     = res.cassa;
+      cassaArticoli = res.articoli || [];
+      if (qrUser) mostraCassa();
+      else showStep('stepLogin');
+    },
+    function(msg){ showErr(msg); }
+  );
+} else if (codice) {
+  // E un articolo singolo
   callApi({ action:'getArticolo', codice:codice },
     function(res){
       artData = res.articolo;
@@ -263,6 +276,8 @@ if (!codice) {
     },
     function(msg){ showErr(msg); }
   );
+} else {
+  showErr('Codice mancante. Scansiona un QR Code valido.');
 }
 
 // Login
