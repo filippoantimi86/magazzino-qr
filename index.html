@@ -60,6 +60,12 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
 .success-title{font-size:20px;font-weight:700;color:#188038;margin-bottom:8px}
 .success-sub{font-size:15px;color:#555;margin-bottom:20px;line-height:1.5;white-space:pre-line}
 .close-msg{background:#f0f4f8;border-radius:12px;padding:16px;font-size:14px;color:#555;line-height:1.6;text-align:left}
+.art-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.art-row:last-child{border-bottom:none}
+.art-row label{flex:1;font-size:14px;cursor:pointer}
+.art-qty{font-size:12px;color:#888}
+.stato-ok{color:#188038;font-weight:600;font-size:12px}
+.stato-fuori{color:#e65100;font-weight:600;font-size:12px}
 .mov-err{margin-top:12px;font-size:13px;color:#d32f2f;padding:10px;background:#fdecea;border-radius:8px;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:8px}
@@ -108,6 +114,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
         USCITA
       </button>
     </div>
+    <button class="btn-back" id="btnSoloVisualizza" style="margin-top:10px">&#x1F441; Solo visualizzazione</button>
   </div>
 
   <div class="step" id="stepMov">
@@ -128,6 +135,48 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
     <button class="btn-confirm" id="btnConf">Conferma</button>
     <button class="btn-back" id="btnBack">Torna indietro</button>
     <div class="mov-err" id="movErr"></div>
+  </div>
+
+  <!-- Step cassa: mostra contenuto e scelta uscita/rientro/visualizza -->
+  <div class="step" id="stepCassa">
+    <div class="art-header" style="margin-bottom:16px">
+      <div class="art-codice" id="cassaCodice"></div>
+      <div class="art-nome" id="cassaNome"></div>
+      <div style="font-size:13px;color:#888" id="cassaDesc"></div>
+    </div>
+    <div id="cassaContenuto" style="margin-bottom:20px;max-height:200px;overflow-y:auto"></div>
+    <div class="btn-group" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <button class="btn-mov btn-carico" id="btnCassaUscita" style="padding:16px 8px;font-size:14px">
+        <span class="icon">&#x1F4E6;&#x2B06;&#xFE0F;</span>USCITA CASSA
+      </button>
+      <button class="btn-mov" id="btnCassaRientro" style="padding:16px 8px;font-size:14px;background:#e6f4ea;color:#188038">
+        <span class="icon">&#x1F4E6;&#x2B07;&#xFE0F;</span>RIENTRO CASSA
+      </button>
+    </div>
+    <button class="btn-back" id="btnCassaSoloView">&#x1F441; Solo visualizzazione</button>
+  </div>
+
+  <!-- Step rientro: spunta articoli rientrati -->
+  <div class="step" id="stepRientro">
+    <div class="mov-header">
+      <div class="mov-tipo tipo-carico">RIENTRO CASSA</div>
+      <div class="mov-nome" id="rientroCassaNome"></div>
+    </div>
+    <div style="font-size:12px;color:#666;margin-bottom:12px">Spunta gli articoli rientrati:</div>
+    <div id="rientroLista" style="margin-bottom:16px;max-height:220px;overflow-y:auto"></div>
+    <button class="btn-confirm carico" id="btnConfermaRientro">Conferma rientro</button>
+    <button class="btn-back" id="btnBackRientro" style="margin-top:10px">Torna indietro</button>
+    <div class="mov-err" id="rientroErr"></div>
+  </div>
+
+  <!-- Step visualizzazione -->
+  <div class="step" id="stepVisualizza">
+    <div class="art-header">
+      <div class="art-codice" id="vizCodice"></div>
+      <div class="art-nome" id="vizNome"></div>
+    </div>
+    <div id="vizContenuto" style="margin-bottom:20px"></div>
+    <div class="close-msg">Nessun movimento registrato.<br><br><strong>Puoi chiudere questa pagina.</strong></div>
   </div>
 
   <div class="step" id="stepOk">
@@ -251,8 +300,122 @@ function showArt() {
   showStep('stepArt');
 }
 
+// Funzioni cassa
+function mostraCassa() {
+  document.getElementById('cassaCodice').textContent = cassaData.Codice;
+  document.getElementById('cassaNome').textContent   = cassaData.Nome;
+  document.getElementById('cassaDesc').textContent   = cassaData.Descrizione || '';
+  var html='';
+  cassaArticoli.forEach(function(a){
+    var inMag = a.InMagazzino !== undefined ? a.InMagazzino : a.Quantita;
+    var stato = inMag <= 0 ? '<span class="stato-fuori">FUORI</span>' : '<span class="stato-ok">PRESENTE</span>';
+    html+='<div class="art-row"><div><div style="font-size:14px;font-weight:500">'+a.Nome+'</div><div class="art-qty">'+a.QuantitaTotale+' '+a.UM+' | '+stato+'</div></div></div>';
+  });
+  document.getElementById('cassaContenuto').innerHTML = html || '<div style="color:#aaa;font-size:14px">Cassa vuota</div>';
+  showStep('stepCassa');
+}
+
+function mostraVisualizzazione() {
+  document.getElementById('vizCodice').textContent = cassaData.Codice;
+  document.getElementById('vizNome').textContent   = cassaData.Nome;
+  var html='';
+  cassaArticoli.forEach(function(a){
+    var inMag = a.InMagazzino !== undefined ? a.InMagazzino : a.Quantita;
+    var col   = inMag<=0 ? '#e65100' : '#188038';
+    var stato = inMag<=0 ? 'FUORI' : 'PRESENTE';
+    html+='<div class="art-row"><div style="flex:1"><div style="font-size:14px;font-weight:500">'+a.Nome+'</div><div class="art-qty">'+a.QuantitaTotale+' '+a.UM+'</div></div><span style="font-weight:600;font-size:13px;color:'+col+'">'+stato+'</span></div>';
+  });
+  document.getElementById('vizContenuto').innerHTML = html || '<div style="color:#aaa">Cassa vuota</div>';
+  showStep('stepVisualizza');
+}
+
+function avviaUscitaCassa() {
+  var btn = document.getElementById('btnCassaUscita');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  callApi({
+    action:'movimentoCassa', codice:cassaData.Codice,
+    tipo:'uscita', operatore:qrUser.nome, articoliSelezionati:''
+  },
+  function(res){
+    btn.innerHTML = '<span class="icon">&#x1F4E6;&#x2B06;&#xFE0F;</span>USCITA CASSA';
+    btn.disabled = false;
+    document.getElementById('okTitle').textContent = 'Uscita registrata!';
+    document.getElementById('okSub').textContent = 'Cassa '+cassaData.Codice+' uscita - '+res.registrati+' articoli registrati';
+    showStep('stepOk');
+  },
+  function(msg){
+    btn.innerHTML = '<span class="icon">&#x1F4E6;&#x2B06;&#xFE0F;</span>USCITA CASSA';
+    btn.disabled = false;
+    showErr('Errore uscita: '+msg);
+  });
+}
+
+function avviaRientroCassa() {
+  document.getElementById('rientroCassaNome').textContent = cassaData.Nome;
+  var html='';
+  cassaArticoli.forEach(function(a, idx){
+    html+='<div class="art-row">';
+    html+='<input type="checkbox" id="ra'+idx+'" checked style="width:20px;height:20px;cursor:pointer" data-artid="'+a.ID+'" />';
+    html+='<label for="ra'+idx+'">'+a.Nome+' <span class="art-qty">'+a.QuantitaTotale+' '+a.UM+'</span></label>';
+    html+='</div>';
+  });
+  document.getElementById('rientroLista').innerHTML = html;
+  showStep('stepRientro');
+}
+
+function confermaRientro() {
+  var checkboxes = document.getElementById('rientroLista').querySelectorAll('input[type=checkbox]');
+  var selezionati = [];
+  var mancanti = [];
+  checkboxes.forEach(function(cb){
+    if (cb.checked) selezionati.push(cb.dataset.artid);
+    else {
+      var art = cassaArticoli.filter(function(a){ return a.ID===cb.dataset.artid; })[0];
+      if (art) mancanti.push(art.Nome);
+    }
+  });
+  if (selezionati.length===0){ document.getElementById('rientroErr').textContent='Seleziona almeno un articolo'; document.getElementById('rientroErr').style.display='block'; return; }
+  if (mancanti.length>0) {
+    if (!confirm('Attenzione: '+mancanti.join(', ')+' non verranno registrati come rientrati. Un alert verra inviato all admin. Procedere?')) return;
+  }
+  var btn = document.getElementById('btnConfermaRientro');
+  btn.innerHTML = '<span class="spinner"></span> Salvataggio...';
+  btn.disabled = true;
+  callApi({
+    action:'movimentoCassa', codice:cassaData.Codice,
+    tipo:'rientro', operatore:qrUser.nome,
+    articoliSelezionati: selezionati.join(',')
+  },
+  function(res){
+    btn.innerHTML = 'Conferma rientro'; btn.disabled=false;
+    var msg='Cassa '+cassaData.Codice+' rientrata - '+res.registrati+' articoli registrati';
+    if(res.mancanti&&res.mancanti.length>0) msg+=' | Mancanti: '+res.mancanti.join(', ');
+    document.getElementById('okTitle').textContent = 'Rientro registrato!';
+    document.getElementById('okSub').textContent = msg;
+    showStep('stepOk');
+  },
+  function(msg){
+    btn.innerHTML='Conferma rientro'; btn.disabled=false;
+    document.getElementById('rientroErr').textContent=msg;
+    document.getElementById('rientroErr').style.display='block';
+  });
+}
+
 // Pulsanti Ingresso/Uscita
 document.getElementById('btnIngresso').addEventListener('click', function(){ selectTipo('carico'); });
+document.getElementById('btnSoloVisualizza').addEventListener('click', function(){
+  // Mostra info articolo senza movimento
+  document.getElementById('vizCodice').textContent = artData.Codice;
+  document.getElementById('vizNome').textContent   = artData.Nome;
+  var inMag = artData.InMagazzino !== undefined ? artData.InMagazzino : artData.Quantita;
+  var fuori = Number(artData.QuantitaTotale||artData.Quantita) - inMag;
+  document.getElementById('vizContenuto').innerHTML =
+    '<div class="art-row"><div style="flex:1"><div style="font-size:14px;font-weight:500">In magazzino</div></div><span style="font-size:18px;font-weight:700;color:#188038">'+inMag+' '+artData.UM+'</span></div>'+
+    '<div class="art-row"><div style="flex:1"><div style="font-size:14px;font-weight:500">Fuori</div></div><span style="font-size:18px;font-weight:700;color:'+(fuori>0?'#e65100':'#188038')+'">'+Math.max(0,fuori)+' '+artData.UM+'</span></div>'+
+    '<div class="art-row"><div style="flex:1"><div style="font-size:14px;font-weight:500">Totale dotazione</div></div><span style="font-size:18px;font-weight:700;color:#1a1a1a">'+(artData.QuantitaTotale||artData.Quantita)+' '+artData.UM+'</span></div>';
+  showStep('stepVisualizza');
+});
 document.getElementById('btnUscita').addEventListener('click', function(){ selectTipo('scarico'); });
 
 function selectTipo(tipo) {
@@ -281,6 +444,13 @@ document.getElementById('btnPiu').addEventListener('click', function(){
   input.value = (parseInt(input.value)||1) + 1;
 });
 document.getElementById('btnBack').addEventListener('click', function(){ showStep('stepArt'); });
+document.getElementById('btnCassaUscita').addEventListener('click', avviaUscitaCassa);
+document.getElementById('btnCassaRientro').addEventListener('click', avviaRientroCassa);
+document.getElementById('btnCassaSoloView').addEventListener('click', mostraVisualizzazione);
+document.getElementById('btnConfermaRientro').addEventListener('click', confermaRientro);
+document.getElementById('btnBackRientro').addEventListener('click', function(){
+  if(cassaData) mostraCassa(); else showStep('stepArt');
+});
 document.getElementById('btnConf').addEventListener('click', confirmMov);
 
 function confirmMov() {
