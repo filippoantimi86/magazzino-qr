@@ -66,6 +66,10 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
 .art-qty{font-size:12px;color:#888}
 .stato-ok{color:#188038;font-weight:600;font-size:12px}
 .stato-fuori{color:#e65100;font-weight:600;font-size:12px}
+.ck-voce{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.ck-voce:last-child{border-bottom:none}
+.ck-voce input[type=checkbox]{width:22px;height:22px;cursor:pointer;flex-shrink:0}
+.ck-voce label{flex:1;font-size:14px;cursor:pointer}
 .link-cambia-utente{color:#1a73e8;text-decoration:underline;cursor:pointer}
 .mov-err{margin-top:12px;font-size:13px;color:#d32f2f;padding:10px;background:#fdecea;border-radius:8px;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -116,6 +120,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       </button>
     </div>
     <button class="btn-back" id="btnSoloVisualizza" style="margin-top:10px">&#x1F441; Solo visualizzazione</button>
+    <button class="btn-back" id="btnApriChecklistMobile" style="margin-top:10px;display:none;background:#e6f4ea;color:#188038;border-color:#c8e6c9">&#x1F4CB; Checklist preoperativa</button>
     <div style="text-align:center;margin-top:14px;font-size:12px;color:#aaa" id="utenteCorrente"></div>
   </div>
 
@@ -180,6 +185,26 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
     </div>
     <div id="vizContenuto" style="margin-bottom:20px"></div>
     <div class="close-msg">Nessun movimento registrato.<br><br><strong>Puoi chiudere questa pagina.</strong></div>
+  </div>
+
+  <!-- Step checklist mobile -->
+  <div class="step" id="stepChecklistMobile">
+    <div class="art-header" style="margin-bottom:14px">
+      <div class="art-codice" id="ckCodice"></div>
+      <div class="art-nome" id="ckNome"></div>
+    </div>
+    <div id="ckVoci" style="margin-bottom:16px;max-height:280px;overflow-y:auto"></div>
+    <div class="note-field">
+      <label style="color:#d32f2f">Anomalie rilevate (vuoto se OK)</label>
+      <textarea id="ckAnomalie" rows="2" placeholder="Descrivi eventuali problemi..." style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:15px;font-family:inherit;background:#fafafa"></textarea>
+    </div>
+    <div class="note-field">
+      <label>Varie / Note</label>
+      <textarea id="ckNote" rows="2" placeholder="Note aggiuntive..." style="width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:15px;font-family:inherit;background:#fafafa"></textarea>
+    </div>
+    <button class="btn-confirm carico" id="btnSalvaChecklistMobile">Salva checklist</button>
+    <button class="btn-back" id="btnBackChecklistMobile" style="margin-top:10px">Torna indietro</button>
+    <div class="mov-err" id="ckErr"></div>
   </div>
 
   <div class="step" id="stepOk">
@@ -271,9 +296,10 @@ if (codiceCassa) {
   );
 } else if (codice) {
   // E un articolo singolo
-  callApi({ action:'getArticolo', codice:codice },
+  callApi({ action:'getArticoloChecklist', codice:codice },
     function(res){
       artData = res.articolo;
+      artData._hasChecklist = res.hasChecklist || false;
       if (qrUser) showArt();
       else showStep('stepLogin');
     },
@@ -339,6 +365,7 @@ function showArt() {
   document.getElementById('dNome').textContent   = artData.Nome;
   document.getElementById('dQty').textContent    = artData.InMagazzino !== undefined ? artData.InMagazzino : artData.Quantita;
   document.getElementById('dUM').textContent     = artData.UM;
+  document.getElementById('btnApriChecklistMobile').style.display = artData._hasChecklist ? '' : 'none';
   showStep('stepArt');
   mostraUtenteCorrente('utenteCorrente');
 }
@@ -446,8 +473,69 @@ function confermaRientro() {
   });
 }
 
+// Checklist mobile
+var ckVociList = [];
+
+function apriChecklistMobile() {
+  document.getElementById('ckCodice').textContent = artData.Codice;
+  document.getElementById('ckNome').textContent = artData.Nome;
+  document.getElementById('ckAnomalie').value = '';
+  document.getElementById('ckNote').value = '';
+  document.getElementById('ckErr').style.display = 'none';
+  document.getElementById('ckVoci').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px"><span class="spinner" style="border-color:rgba(0,0,0,.2);border-top-color:#1a73e8"></span></div>';
+  showStep('stepChecklistMobile');
+
+  callApi({ action:'getVociChecklistMobile', articoloId:artData.ID, categoria:artData.Categoria },
+    function(res){
+      ckVociList = res.voci || [];
+      var html = '';
+      ckVociList.forEach(function(v, idx){
+        html += '<div class="ck-voce">';
+        html += '<input type="checkbox" id="ckv'+idx+'" />';
+        html += '<label for="ckv'+idx+'">'+v+'</label>';
+        html += '</div>';
+      });
+      document.getElementById('ckVoci').innerHTML = html;
+    },
+    function(msg){ document.getElementById('ckVoci').innerHTML = '<div style="color:#d32f2f">Errore: '+msg+'</div>'; }
+  );
+}
+
+function salvaChecklistMobile() {
+  var inputs = document.querySelectorAll('#ckVoci input[type=checkbox]');
+  var vociStato = [];
+  inputs.forEach(function(inp, idx){
+    vociStato.push((inp.checked?'[OK] ':'[--] ') + ckVociList[idx]);
+  });
+  var anomalie = document.getElementById('ckAnomalie').value.trim();
+  var note = document.getElementById('ckNote').value.trim();
+  var btn = document.getElementById('btnSalvaChecklistMobile');
+  btn.innerHTML = '<span class="spinner"></span> Salvataggio...';
+  btn.disabled = true;
+
+  callApi({
+    action:'salvaChecklistMobile', articoloId:artData.ID, articolo:artData.Nome,
+    operatore:qrUser.nome, vociJSON:JSON.stringify(vociStato),
+    anomalie:anomalie, note:note
+  },
+  function(res){
+    btn.innerHTML = 'Salva checklist'; btn.disabled = false;
+    document.getElementById('okTitle').textContent = res.esito==='OK' ? 'Checklist completata!' : 'Checklist salvata - Anomalia segnalata';
+    document.getElementById('okSub').textContent = artData.Nome + (res.esito==='ANOMALIA' ? '\nAnomalia inviata all amministratore' : '\nTutto regolare');
+    showStep('stepOk');
+  },
+  function(msg){
+    btn.innerHTML = 'Salva checklist'; btn.disabled = false;
+    document.getElementById('ckErr').textContent = msg;
+    document.getElementById('ckErr').style.display = 'block';
+  });
+}
+
 // Pulsanti Ingresso/Uscita
 document.getElementById('btnIngresso').addEventListener('click', function(){ selectTipo('carico'); });
+document.getElementById('btnApriChecklistMobile').addEventListener('click', apriChecklistMobile);
+document.getElementById('btnSalvaChecklistMobile').addEventListener('click', salvaChecklistMobile);
+document.getElementById('btnBackChecklistMobile').addEventListener('click', function(){ showStep('stepArt'); });
 document.getElementById('btnSoloVisualizza').addEventListener('click', function(){
   // Mostra info articolo senza movimento
   document.getElementById('vizCodice').textContent = artData.Codice;
