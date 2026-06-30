@@ -296,6 +296,11 @@ function doLogin() {
   callApi({ action:'login', nome:nome, pass:pass },
     function(res){
       btn.innerHTML='Accedi'; btn.disabled=false;
+      if (res.user && res.user.cambioPass) {
+        err.textContent = 'Devi prima cambiare la password dal gestionale web su PC, poi potrai accedere da qui.';
+        err.style.display='block';
+        return;
+      }
       qrUser = res.user;
       try{
       localStorage.setItem('qrUser', JSON.stringify(qrUser));
