@@ -193,6 +193,9 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
       <div class="art-codice" id="ckCodice"></div>
       <div class="art-nome" id="ckNome"></div>
     </div>
+    <div id="ckAvvisoObbligatorio" style="display:none;background:#fff3e0;color:#e65100;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;text-align:center">
+      Checklist obbligatoria prima dell uscita
+    </div>
     <div id="ckVoci" style="margin-bottom:16px;max-height:280px;overflow-y:auto"></div>
     <div class="note-field">
       <label style="color:#d32f2f">Anomalie rilevate (vuoto se OK)</label>
@@ -225,6 +228,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh;displa
 var BACKEND = 'https://script.google.com/macros/s/AKfycbzZfuMUcThDuj_w5kjey5r29z11hcotUQsYajYzDs1VevmpS3cwGawzezFLmbmNcbQy/exec';
 
 var artData = null;
+var _uscitaInAttesa = false;
 var movTipo = '';
 var qrUser  = null;
 
@@ -482,6 +486,8 @@ function apriChecklistMobile() {
   document.getElementById('ckAnomalie').value = '';
   document.getElementById('ckNote').value = '';
   document.getElementById('ckErr').style.display = 'none';
+  var avviso = document.getElementById('ckAvvisoObbligatorio');
+  if (avviso) avviso.style.display = _uscitaInAttesa ? '' : 'none';
   document.getElementById('ckVoci').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px"><span class="spinner" style="border-color:rgba(0,0,0,.2);border-top-color:#1a73e8"></span></div>';
   showStep('stepChecklistMobile');
 
@@ -520,6 +526,13 @@ function salvaChecklistMobile() {
   },
   function(res){
     btn.innerHTML = 'Salva checklist'; btn.disabled = false;
+    artData._checklistFattaOra = true;
+    if (_uscitaInAttesa) {
+      // Checklist completata, procedi automaticamente con l'uscita
+      _uscitaInAttesa = false;
+      selectTipo('scarico');
+      return;
+    }
     document.getElementById('okTitle').textContent = res.esito==='OK' ? 'Checklist completata!' : 'Checklist salvata - Anomalia segnalata';
     document.getElementById('okSub').textContent = artData.Nome + (res.esito==='ANOMALIA' ? '\nAnomalia inviata all amministratore' : '\nTutto regolare');
     showStep('stepOk');
@@ -533,9 +546,18 @@ function salvaChecklistMobile() {
 
 // Pulsanti Ingresso/Uscita
 document.getElementById('btnIngresso').addEventListener('click', function(){ selectTipo('carico'); });
+document.getElementById('btnUscita').addEventListener('click', function(){
+  if (artData._hasChecklist) {
+    // Blocca l'uscita, forza la checklist prima
+    _uscitaInAttesa = true;
+    apriChecklistMobile();
+    return;
+  }
+  selectTipo('scarico');
+});
 document.getElementById('btnApriChecklistMobile').addEventListener('click', apriChecklistMobile);
 document.getElementById('btnSalvaChecklistMobile').addEventListener('click', salvaChecklistMobile);
-document.getElementById('btnBackChecklistMobile').addEventListener('click', function(){ showStep('stepArt'); });
+document.getElementById('btnBackChecklistMobile').addEventListener('click', function(){ _uscitaInAttesa=false; showStep('stepArt'); });
 document.getElementById('btnSoloVisualizza').addEventListener('click', function(){
   // Mostra info articolo senza movimento
   document.getElementById('vizCodice').textContent = artData.Codice;
@@ -548,7 +570,7 @@ document.getElementById('btnSoloVisualizza').addEventListener('click', function(
     '<div class="art-row"><div style="flex:1"><div style="font-size:14px;font-weight:500">Totale dotazione</div></div><span style="font-size:18px;font-weight:700;color:#1a1a1a">'+(artData.QuantitaTotale||artData.Quantita)+' '+artData.UM+'</span></div>';
   showStep('stepVisualizza');
 });
-document.getElementById('btnUscita').addEventListener('click', function(){ selectTipo('scarico'); });
+
 
 function selectTipo(tipo) {
   movTipo = tipo;
